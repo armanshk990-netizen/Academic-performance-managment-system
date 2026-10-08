@@ -1,0 +1,7 @@
+Flask
+mysql-connector-python
+python-dotenv
+openpyxl
+xlrd
+Flask-WTF>=1.2,<2
+Flask-Limiter>=3.5,<5

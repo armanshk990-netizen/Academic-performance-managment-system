@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_heading %}Student Subjects{% endblock %}
+{% block content %}
+<section class="form-card">
+  <div class="section-head">
+    <div><h3>Subjects for {{ student.student_name }}</h3>
+    <p>Select exactly the subjects this student studies.</p></div>
+    <a class="btn" href="{{ url_for('students') }}">← Back</a>
+  </div>
+
+  <div class="student-summary student-summary-card">
+    <div><span>Student</span><strong>{{ student.student_name }}</strong></div>
+    <div><span>Roll No.</span><strong>{{ student.roll_no }}</strong></div>
+    <div><span>Class</span><strong>{{ student.student_class }}</strong></div>
+    <div><span>Selected</span><strong id="selectedCount">{{ assigned|length }}</strong></div>
+  </div>
+
+  {% if all_subjects %}
+  <form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="subject-picker-head">
+      <div><h3>Choose Subjects</h3><p>Checked subjects will appear in this student's marks entry.</p></div>
+      <div class="picker-actions">
+        <button type="button" class="btn small" onclick="setAll(true)">Select All</button>
+        <button type="button" class="btn small" onclick="setAll(false)">Clear All</button>
+      </div>
+    </div>
+
+    <div class="subject-picker">
+      {% for subject in all_subjects %}
+      <label class="subject-option {% if subject.subject_id in assigned_ids %}selected{% endif %}">
+        <input type="checkbox" name="subject_ids" value="{{ subject.subject_id }}"
+               {% if subject.subject_id in assigned_ids %}checked{% endif %}
+               onchange="refresh(this)">
+        <span class="subject-check">✓</span>
+        <span class="subject-name">{{ subject.subject_name }}</span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="save-subjects-bar">
+      <div><strong id="selectedCount2">{{ assigned|length }}</strong> subject(s) selected
+      <small>Save once to update this student's complete subject list.</small></div>
+      <button class="btn primary" type="submit">Save Subjects</button>
+    </div>
+  </form>
+  {% else %}
+  <div class="empty"><h3>No subjects available</h3><p>Create subjects from the Subjects page first.</p></div>
+  {% endif %}
+</section>
+
+<script>
+function refresh(box){
+  box.closest('.subject-option').classList.toggle('selected', box.checked);
+  const n=document.querySelectorAll('input[name="subject_ids"]:checked').length;
+  document.getElementById('selectedCount').textContent=n;
+  document.getElementById('selectedCount2').textContent=n;
+}
+function setAll(value){
+  document.querySelectorAll('input[name="subject_ids"]').forEach(function(box){
+    box.checked=value; refresh(box);
+  });
+}
+</script>
+{% endblock %}

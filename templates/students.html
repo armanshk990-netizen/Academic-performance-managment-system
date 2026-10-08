@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block page_heading %}Students{% endblock %}
+{% block content %}
+<div class="toolbar">
+    <form class="search" method="get">
+        <input name="q" value="{{ search }}" placeholder="Search by roll number, name or class...">
+        <button class="btn">Search</button>
+    </form>
+    {% if current_user.role in ('admin','teacher') %}<a class="btn primary" href="{{ url_for('add_student') }}">+ Add Student</a>{% endif %}
+</div>
+<section class="card">
+    <div class="section-head">
+        <div><h3>Student Directory</h3><p>{{ students|length }} record(s) shown</p></div>
+        {% if students and current_user.role in ('admin','teacher') %}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button type="button" class="btn small" onclick="toggleAllStudents()">☑ Select All</button>
+            <button type="submit" form="bulkDeleteForm" class="btn small danger-outline" onclick="return confirmSelectedDelete()">Delete Selected</button>
+            <button type="submit" form="bulkDeleteAllForm" class="btn small danger" onclick="return confirmDeleteAll()">Delete All Students</button>
+        </div>
+        {% endif %}
+    </div>
+    {% if students %}
+    {% if current_user.role in ('admin','teacher') %}<form id="bulkDeleteForm" method="post" action="{{ url_for('bulk_delete_students') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mode" value="selected"><input type="hidden" name="q" value="{{ search }}">
+        <div class="table-wrap"><table>
+        <thead><tr>
+            <th style="width:45px"><input id="selectAllStudents" type="checkbox" onchange="toggleAllStudents(this.checked)" aria-label="Select all"></th>
+            <th>Roll No.</th>
+            {% if institution.use_enrollment %}<th>Enrollment No.</th>{% endif %}
+            <th>Student Name</th><th>Class</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+        {% for s in students %}
+        <tr>
+            <td><input class="student-check" type="checkbox" name="student_ids" value="{{ s.student_id }}" aria-label="Select {{ s.student_name }}"></td>
+            <td><span class="roll">{{ s.roll_no }}</span></td>
+            {% if institution.use_enrollment %}<td>{{ s.enrollment_no or s.roll_no }}</td>{% endif %}
+            <td><strong>{{ s.student_name }}</strong></td><td>{{ s.student_class }}</td>
+            <td class="actions">
+                {% if current_user.role in ('admin','teacher') %}<a class="btn small" href="{{ url_for('student_subjects', student_id=s.student_id) }}">Subjects</a>
+                <a class="btn small" href="{{ url_for('edit_student', student_id=s.student_id) }}">Edit</a>
+                <form method="post" action="{{ url_for('delete_student', student_id=s.student_id) }}" style="display:inline" onsubmit="return confirm('Delete this student and all related marks and attendance? This cannot be undone.')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn small danger-outline" type="submit">Delete</button>
+                </form>{% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+        </tbody></table></div>
+    </form>{% endif %}
+    {% if current_user.role in ('admin','teacher') %}<form id="bulkDeleteAllForm" method="post" action="{{ url_for('bulk_delete_students') }}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="mode" value="all"><input type="hidden" name="q" value="{{ search }}">
+    </form>{% endif %}
+    {% if current_user.role in ('admin','teacher') %}<div style="margin-top:14px;padding:12px 14px;border-radius:12px;background:#fff7ed;border:1px solid #fed7aa">
+        <strong>Bulk delete:</strong> Select students and choose <b>Delete Selected</b>, or remove every student currently accessible to your account with <b>Delete All Students</b>.
+    </div>{% endif %}
+    {% else %}<div class="empty">No students found.</div>{% endif %}
+</section>
+<script>
+function checks(){return Array.from(document.querySelectorAll('.student-check'))}
+function toggleAllStudents(value){
+    const c=checks(), target=typeof value==='boolean'?value:!c.every(x=>x.checked);
+    c.forEach(x=>x.checked=target);
+    const master=document.getElementById('selectAllStudents'); if(master) master.checked=target;
+}
+function confirmSelectedDelete(){
+    const n=checks().filter(x=>x.checked).length;
+    if(!n){alert('Please select at least one student.');return false;}
+    return confirm('Delete '+n+' selected student(s) and all related marks and attendance? This cannot be undone.');
+}
+function confirmDeleteAll(){
+    return confirm('WARNING: Delete ALL students currently accessible to your account and all related marks and attendance? This cannot be undone.');
+}
+</script>
+{% endblock %}

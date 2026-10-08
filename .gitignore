@@ -1,0 +1,39 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# Flask/runtime
+instance/
+*.log
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local data / exports
+*.sql.gz
+*.dump
+*.bak
+*.sqlite
+*.db
+*.csv
+*.xlsx
+*.xls
+*.xlsm
+
+# Project archives
+*.zip
+*.pyc
+*.sqlite3
+uploads/

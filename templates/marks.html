@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Add Marks | Academic Marks Management System{% endblock %}
+{% block page_heading %}Add Marks{% endblock %}
+{% block content %}<div class="page-actions"><a class="btn" href="{{url_for('import_marks')}}">⇧ Import Marks File</a></div>
+<div class="marks-page">
+    <section class="card marks-intro">
+        <div class="intro-icon">📝</div>
+        <div>
+            <h2>Enter or Update Marks</h2>
+            <p>Select a student, semester and exam once. All subjects assigned to that student will appear below.</p>
+        </div>
+        <div class="breadcrumb-mini">Dashboard &nbsp;›&nbsp; Add Marks</div>
+    </section>
+
+    <section class="form-card selection-card">
+        <div class="section-head">
+            <div>
+                <h3>Assessment Details</h3>
+                <p>Choose the assessment you want to enter or update.</p>
+            </div>
+            {% if student %}<span class="ready-badge">✓ Student selected</span>{% endif %}
+        </div>
+        <form method="get" action="{{ url_for('marks') }}" class="marks-selector">
+            <div class="selector-field">
+                <label>Student <span>*</span></label>
+                <select name="student_id" id="studentSelect" required>
+                    <option value="">Select student</option>
+                    {% for s in students %}
+                    <option value="{{ s.student_id }}" {% if selected_student == s.student_id %}selected{% endif %}>
+                        {{ s.roll_no }} - {{ s.student_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="selector-field">
+                <label>Semester <span>*</span></label>
+                <select name="semester_id" required>
+                    <option value="">Select semester</option>
+                    {% for s in semesters %}
+                    <option value="{{ s.semester_id }}" {% if selected_semester == s.semester_id %}selected{% endif %}>{{ s.semester_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="selector-field">
+                <label>Exam Type <span>*</span></label>
+                <select name="exam_id" required>
+                    <option value="">Select exam</option>
+                    {% for e in exams %}
+                    <option value="{{ e.exam_id }}" {% if selected_exam == e.exam_id %}selected{% endif %}>{{ e.exam_name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button class="btn load-btn" type="submit">↻ &nbsp; Load Subjects</button>
+        </form>
+
+        {% if student %}
+        <div class="student-summary student-summary-card">
+            <div><b>Class</b><span>{{ student.student_class }}</span></div>
+            <div><b>Roll No.</b><span>{{ student.roll_no }}</span></div>
+            <div><b>Semester</b><span>{{ selected_semester and (semesters | selectattr('semester_id','equalto',selected_semester) | map(attribute='semester_name') | first) or '—' }}</span></div>
+            <div><b>Subjects</b><span>{{ assignments|length }}</span></div>
+        </div>
+        {% endif %}
+    </section>
+
+    {% if student and assignments %}
+    <section class="form-card marks-entry-card">
+        <div class="section-head marks-entry-head">
+            <div class="entry-title">
+                <div class="book-icon">📚</div>
+                <div><h3>Enter Subject Marks</h3><p>Fill in obtained marks. Existing values can be changed directly.</p></div>
+            </div>
+            <button type="button" class="btn autofill-btn" onclick="fillMaximums()">⚙ Auto-fill Maximum Marks</button>
+        </div>
+
+        <form method="post" action="{{ url_for('marks') }}" id="marksForm">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="student_id" value="{{ selected_student }}">
+            <input type="hidden" name="semester_id" value="{{ selected_semester }}">
+            <input type="hidden" name="exam_id" value="{{ selected_exam }}">
+
+            <div class="marks-table-wrap">
+                <table class="marks-table">
+                    <thead>
+                        <tr><th>#</th><th>Subject</th><th>Maximum Marks</th><th>Obtained Marks</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for a in assignments %}
+                    {% set r = existing.get(a.student_subject_id) %}
+                    <tr class="mark-row">
+                        <td class="serial">{{ loop.index }}</td>
+                        <td><div class="subject-cell"><span class="subject-icon">📘</span><strong>{{ a.subject_name }}</strong></div></td>
+                        <td><input class="max-input" type="number" min="0.01" step="0.01" name="maximum_{{ a.student_subject_id }}" value="{{ r.maximum_marks if r else 100 }}" required></td>
+                        <td><input class="obtained-input" type="number" min="0" step="0.01" name="obtained_{{ a.student_subject_id }}" value="{{ r.obtained_marks if r else '' }}" placeholder="e.g. 25"></td>
+                        <td class="status-cell"><span class="mark-status {% if r %}entered{% else %}not-entered{% endif %}" data-status>
+                            {% if r %}✓ Entered{% else %}Not Entered{% endif %}</span></td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="entry-note">✓ <span>Existing marks will be <b>updated</b>. New marks will be <b>added</b> for empty fields.</span></div>
+            <div class="marks-actions">
+                <a href="{{ url_for('students') }}" class="btn back-btn">← &nbsp; Back to Students</a>
+                <button type="submit" class="btn save-btn">▣ &nbsp; Save Marks</button>
+            </div>
+        </form>
+    </section>
+    {% elif student %}
+    <div class="empty card"><strong>No subjects assigned.</strong><br>Assign subjects to this student before entering marks.</div>
+    {% else %}
+    <div class="empty card"><strong>Ready to enter marks.</strong><br>Select a student, semester and exam above, then click <b>Load Subjects</b>.</div>
+    {% endif %}
+</div>
+
+<script>
+function fillMaximums(){
+    document.querySelectorAll('.max-input').forEach(function(input){
+        if(!input.value) input.value = 100;
+    });
+}
+function updateStatus(input){
+    const row=input.closest('.mark-row');
+    const obtained=row.querySelector('.obtained-input');
+    const status=row.querySelector('[data-status]');
+    const max=parseFloat(row.querySelector('.max-input').value);
+    const value=obtained.value.trim();
+    row.classList.remove('invalid-row');
+    if(value===''){
+        status.textContent='Not Entered';
+        status.className='mark-status not-entered';
+        return;
+    }
+    const num=parseFloat(value);
+    if(isNaN(num) || num<0 || !max || num>max){
+        status.textContent='Check Marks';
+        status.className='mark-status invalid';
+        row.classList.add('invalid-row');
+        return;
+    }
+    status.textContent='✓ Entered';
+    status.className='mark-status entered';
+}
+document.querySelectorAll('.obtained-input,.max-input').forEach(function(input){
+    input.addEventListener('input',function(){updateStatus(this);});
+});
+document.getElementById('marksForm')?.addEventListener('submit',function(e){
+    let invalid=false;
+    document.querySelectorAll('.mark-row').forEach(function(row){
+        const o=row.querySelector('.obtained-input').value.trim();
+        const m=parseFloat(row.querySelector('.max-input').value);
+        if(o!=='' && (isNaN(parseFloat(o)) || parseFloat(o)<0 || parseFloat(o)>m)) invalid=true;
+    });
+    if(invalid){e.preventDefault();alert('Please correct the highlighted marks before saving.');}
+});
+</script>
+{% endblock %}

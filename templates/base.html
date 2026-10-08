@@ -1,0 +1,209 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="csrf-token" content="{{ csrf_token() }}">
+<title>{% block title %}{{institution.name}}{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{url_for('static',filename='style.css')}}?v=32.4"><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+/* Global CSRF protection for normal forms and AJAX requests. */
+(function(){
+  const tokenMeta=()=>document.querySelector('meta[name="csrf-token"]');
+  const token=()=>tokenMeta()?.getAttribute('content')||'';
+  document.addEventListener('submit',function(e){
+    const form=e.target;
+    if(!form || form.tagName!=='FORM' || (form.method||'get').toLowerCase()!=='post') return;
+    if(!form.querySelector('input[name="csrf_token"]')){
+      const input=document.createElement('input');
+      input.type='hidden'; input.name='csrf_token'; input.value=token();
+      form.appendChild(input);
+    }
+  },true);
+  const originalFetch=window.fetch;
+  window.fetch=function(input,init){
+    init=init||{};
+    const method=(init.method||'GET').toUpperCase();
+    if(method!=='GET' && method!=='HEAD' && method!=='OPTIONS'){
+      const t=token();
+      init.headers=new Headers(init.headers||{});
+      if(t) init.headers.set('X-CSRFToken',t);
+    }
+    return originalFetch(input,init);
+  };
+})();
+</script>
+
+<script>
+window.AcademicCharts = {
+  instances:{},
+  clean(values){
+    return (Array.isArray(values)?values:[]).map(v=>{
+      const n=Number(v);
+      return Number.isFinite(n)?n:0;
+    });
+  },
+  empty(el,msg='No chart data available yet'){
+    if(!el)return;
+    const box=el.closest('.chart-box')||el.parentElement;
+    if(!box)return;
+    el.style.display='none';
+    box.classList.add('chart-empty');
+    box.innerHTML='<div><span>◌</span><b>'+msg+'</b><small>Add or import records to populate this chart.</small></div>';
+  },
+  make(id,type,labels,values,opts={}){
+    const el=document.getElementById(id);
+    if(!el || !el.getContext)return null;
+    if(typeof Chart==='undefined'){
+      this.empty(el,'Chart library could not load');
+      return null;
+    }
+    const rawLabels=Array.isArray(labels)?labels:[];
+    const rawValues=this.clean(values);
+    const count=Math.min(rawLabels.length,rawValues.length);
+    const L=rawLabels.slice(0,count).map(v=>String(v??''));
+    const V=rawValues.slice(0,count);
+    if(!count){this.empty(el);return null;}
+
+    if(this.instances[id]){
+      try{this.instances[id].destroy();}catch(e){}
+      delete this.instances[id];
+    }
+
+    const isDough=type==='doughnut';
+    const isBar=type==='bar';
+    const palette=['#8b5cf6','#22d3ee','#ec4899','#6366f1','#14b8a6','#f59e0b','#38bdf8','#a78bfa'];
+    if(isBar){
+      const box=el.closest('.chart-box');
+      if(box) box.style.height=Math.max(300, Math.min(760, L.length*44+70))+'px';
+    }
+    const ctx=el.getContext('2d');
+    if(!ctx){this.empty(el,'This browser cannot render the chart');return null;}
+
+    let bg=opts.background||palette;
+    let border=opts.border||'#a78bfa';
+    if(type==='line'){
+      const gradient=ctx.createLinearGradient(0,0,0,300);
+      gradient.addColorStop(0,'rgba(139,92,246,.32)');
+      gradient.addColorStop(.65,'rgba(34,211,238,.08)');
+      gradient.addColorStop(1,'rgba(34,211,238,0)');
+      bg=gradient;
+    }
+
+    const config={
+      type,
+      data:{labels:L,datasets:[{
+        label:opts.label||'',data:V,backgroundColor:bg,borderColor:border,
+        borderWidth:type==='line'?2.5:1.5,
+        borderRadius:isDough?0:8,
+        borderSkipped:false,
+        tension:type==='line'?.28:0,
+        fill:type==='line',
+        pointRadius:type==='line'?5:0,
+        pointHoverRadius:type==='line'?7:0,
+        pointBackgroundColor:'#c4b5fd',
+        pointBorderColor:'#0b1224',
+        pointBorderWidth:type==='line'?2:0,
+        spanGaps:true
+      }]},
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        resizeDelay:80,
+        animation:{duration:450,easing:'easeOutQuart'},
+        interaction:{mode:'index',intersect:false},
+        layout:{padding:{top:8,right:12,bottom:6,left:4}},
+        plugins:{
+          legend:{display:isDough,position:'bottom',labels:{color:'#b8c3db',usePointStyle:true,padding:18}},
+          tooltip:{backgroundColor:'#090f1f',titleColor:'#fff',bodyColor:'#dbe4ff',padding:12,cornerRadius:10,displayColors:true}
+        },
+        indexAxis:isBar?'y':'x',
+        scales:isDough?{}:(isBar?{
+          x:{beginAtZero:true,max:opts.max||100,grid:{color:'rgba(148,163,184,.10)'},ticks:{color:'#9aa7c2',callback:v=>v+'%'}},
+          y:{grid:{display:false},ticks:{color:'#c7d2e9',autoSkip:false,padding:8}}
+        }:{
+          x:{grid:{display:false},ticks:{color:'#9aa7c2',maxRotation:35,minRotation:0,autoSkip:true}},
+          y:{beginAtZero:true,max:opts.max||100,grid:{color:'rgba(148,163,184,.10)'},ticks:{color:'#9aa7c2',callback:v=>v+'%'}}
+        })
+      }
+    };
+    const chart=new Chart(ctx,config);
+    this.instances[id]=chart;
+    requestAnimationFrame(()=>{
+      try{chart.resize();chart.update('none');}catch(e){}
+    });
+    return chart;
+  }
+};
+</script>
+
+<script>
+/* AMS_V22_CHART_SAFE: normalize chart datasets, especially single-student analysis */
+window.AMS_V22_CHART_SAFE = {
+  arr(v) {
+    if (Array.isArray(v)) return v;
+    if (v === null || v === undefined || v === "") return [];
+    return [v];
+  },
+  labels(v) {
+    return this.arr(v).map(x => String(x ?? ""));
+  },
+  nums(v) {
+    return this.arr(v).map(x => {
+      const n = Number(x);
+      return Number.isFinite(n) ? n : 0;
+    });
+  },
+  valid(labels, data) {
+    const l=this.labels(labels), d=this.nums(data);
+    const n=Math.min(l.length,d.length);
+    return {labels:l.slice(0,n), data:d.slice(0,n)};
+  },
+  destroy(canvas) {
+    if (!canvas) return;
+    const existing = Chart.getChart(canvas);
+    if (existing) existing.destroy();
+  }
+};
+</script>
+</head><body class="ams-app-body">
+<div class="app-shell">
+{% if logged_in %}
+<aside class="sidebar">
+  <div class="brand"><div class="brand-icon">🎓</div><div><strong>{{institution.name}}</strong><span>{{institution.type|title}} Management</span></div></div>
+  <nav class="main-nav">
+    <div class="nav-section-title">WORKSPACE</div>
+    <a href="{{url_for('index')}}">🏠 <span>Dashboard</span></a>
+    {% if current_user.role=='student' %}
+      <a href="{{url_for('results')}}">📊 <span>My Results</span></a>
+      <a href="{{url_for('analysis')}}">📈 <span>My Performance</span></a>
+      <a href="{{url_for('attendance_dashboard')}}">🗓️ <span>My Attendance</span></a>
+    {% elif current_user.role=='staff' %}
+      <a href="{{url_for('students')}}">👥 <span>Students</span></a>
+      <a href="{{url_for('results')}}">📊 <span>Results</span></a>
+      <a href="{{url_for('analysis')}}">📈 <span>Analysis</span></a>
+      <div class="nav-section-title">ATTENDANCE</div>
+      <a href="{{url_for('attendance_dashboard')}}">🗓️ <span>Dashboard</span></a>
+    {% else %}
+      <a href="{{url_for('students')}}">👥 <span>Students</span></a>
+      <a href="{{url_for('subjects')}}">📚 <span>Subjects</span></a>
+      <div class="nav-section-title">ACADEMICS</div>
+      <a href="{{url_for('marks')}}">✍️ <span>Enter Marks</span></a>
+      <a href="{{url_for('import_marks')}}">📥 <span>Import Marks</span></a>
+      <a href="{{url_for('results')}}">📊 <span>Results</span></a>
+      <a href="{{url_for('analysis')}}">📈 <span>Analysis</span></a>
+      <div class="nav-section-title">ATTENDANCE</div>
+      <a href="{{url_for('attendance_dashboard')}}">🗓️ <span>Dashboard</span></a>
+      <a href="{{url_for('import_attendance')}}">📥 <span>Import</span></a>
+    {% endif %}
+    {% if current_user.role=='admin' %}<div class="nav-section-title">ADMINISTRATION</div><a href="{{url_for('users')}}">👤 <span>Users</span></a><a href="{{url_for('settings')}}">⚙️ <span>Settings</span></a>{% endif %}
+  </nav>
+  {% if current_user.role=='teacher' and allowed_classes %}<form class="side-class" method="post" action="{{url_for('switch_class')}}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label>🎯 Working Class</label><select name="class_name" onchange="this.form.submit()">{% for c in allowed_classes %}<option {% if active_class==c %}selected{% endif %}>{{c}}</option>{% endfor %}</select></form>{% endif %}
+  <div class="sidebar-user"><b>{{current_user.full_name}}</b><small>{{current_user.role|title}}</small></div><form class="logout-form" method="post" action="{{url_for('logout')}}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="logout" type="submit">↪ Logout</button></form>
+</aside>
+{% endif %}
+<main class="main-content {% if not logged_in %}full{% endif %}">
+{% if logged_in %}<header class="topbar"><div><p class="eyebrow">{{institution.type|upper}} · ACADEMIC RECORDS</p><h1>{% block page_heading %}{{institution.name}}{% endblock %}</h1></div><div class="user-chip">✨ {{current_user.full_name}}</div></header>{% endif %}
+{% with messages=get_flashed_messages(with_categories=true) %}{% for category,message in messages %}<div class="flash {{category}}">{{message}}</div>{% endfor %}{% endwith %}
+<div class="page-transition">{% block content %}{% endblock %}</div>
+</main></div>
+</body></html>

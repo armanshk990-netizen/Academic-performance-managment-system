@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block page_heading %}Edit Marks{% endblock %}
+{% block content %}
+<div class="form-card narrow">
+<div class="section-head"><div><h3>Update Marks</h3><p>{{ record.student_name }} · {{ record.subject_name }} · {{ record.exam_name }}</p></div></div>
+<form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+<label>Obtained Marks</label><input type="number" step="0.01" min="0" name="obtained_marks" value="{{ record.obtained_marks }}" required>
+<label>Maximum Marks</label><input type="number" step="0.01" min="0.01" name="maximum_marks" value="{{ record.maximum_marks }}" required>
+<div class="form-actions"><a class="btn" href="{{ url_for('marks') }}">Cancel</a><button class="btn primary">Update Marks</button></div>
+</form>
+</div>
+{% endblock %}

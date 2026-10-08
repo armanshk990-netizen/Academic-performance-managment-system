@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block page_heading %}Student Password Requests{% endblock %}
+{% block content %}<section class="card glass-card"><div class="section-head"><div><h3>🔔 Student Password Requests</h3><p>Only students from your assigned classes are shown.</p></div></div>
+{% if reset_requests %}{% for r in reset_requests %}<div class="reset-request"><div><b>{{r.full_name}}</b><span>{{r.username}} · {{r.student_class}}</span><small>{{r.requested_at}}</small></div><form method="post" action="{{url_for('complete_reset_request',request_id=r.request_id)}}" class="reset-inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="password" name="new_password" minlength="6" placeholder="New password" required><button class="btn small primary">Reset</button></form></div>{% endfor %}{% else %}<div class="empty">No pending student password requests. 👍</div>{% endif %}
+</section>{% endblock %}

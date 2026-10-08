@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block page_heading %}Import Marks{% endblock %}
+{% block content %}
+<div class="marks-import-page">
+<section class="card hero-card">
+  <div class="section-head">
+    <div>
+      <h3>Import Marks — Smart File Reader</h3>
+      <p>You do <b>not</b> need to arrange the file in our template. The system detects the header, reads columns in any order, and can import Unit 1 + Unit 2 + Semester results from the same file.</p>
+    </div>
+  </div>
+  <form method="post" enctype="multipart/form-data">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid three">
+      <div>
+        <label>Import Mode</label>
+        <select name="import_mode">
+          <option value="overall" selected>Overall — Auto-detect ALL Unit / Semester / Test types</option>
+          <option value="single">Single / Default Test</option>
+        </select>
+        <small style="display:block;margin-top:6px;opacity:.75">Recommended for college files containing multiple exams in one upload. Unknown test types are created automatically.</small>
+      </div>
+      <div>
+        <label>Semester / Term <span style="font-weight:400">(optional if the file has a Semester column)</span></label>
+        <select name="semester_id">
+          <option value="">Detect from file</option>
+          {% for s in semesters %}<option value="{{s.semester_id}}">{{s.semester_name}}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Default Test / Assessment <span style="font-weight:400">(optional)</span></label>
+        <select name="exam_id">
+          <option value="">Detect from file</option>
+          {% for e in exams %}<option value="{{e.exam_id}}">{{e.exam_name}}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <label>Or create default custom test</label>
+        <input name="custom_exam" placeholder="e.g. Unit Test 1">
+      </div>
+    </div>
+
+    <div class="drop-zone" id="drop">
+      <input id="file" type="file" name="marks_file" required accept=".xlsx,.xls,.xlsm,.xltx,.xltm,.csv,.tsv,.txt,.json">
+      <div class="upload-icon">⇧</div>
+      <h3>Drag & Drop your marks file</h3>
+      <p>or click to choose from your device</p>
+      <span>Excel, CSV, TSV, TXT or JSON · large files supported · column/row order does not matter · blank columns are ignored</span>
+      <strong id="name"></strong>
+    </div>
+    <button class="btn primary full-btn">Upload & Review</button>
+  <div id="upload-progress" role="status" aria-live="polite" class="upload-progress"></div>
+</form>
+</section>
+
+<section class="card">
+  <h3>What the Smart Import can understand</h3>
+  <div class="steps">
+    <div><b>1</b>Header can start after title/instruction rows</div>
+    <div><b>2</b>Columns can be in any order</div>
+    <div><b>3</b>One file can contain multiple tests</div>
+    <div><b>4</b>Edit everything before saving</div>
+  </div>
+  <div class="import-example-box">
+    <strong>Examples:</strong> a file can have <b>Unit 1, Unit 2 and Semester 1</b> in separate rows using a Test/Exam column, or as separate columns such as <b>Unit 1 Marks, Unit 2 Marks, Sem 1 Marks</b>. Both are converted into separate assessment records.
+  </div>
+  <div class="template-links">
+    <a class="btn" href="{{url_for('import_template',fmt='csv')}}">CSV Template</a>
+    <a class="btn" href="{{url_for('import_template',fmt='xlsx')}}">Excel Template</a>
+  </div>
+</section>
+<script>
+const d=document.getElementById('drop'),f=document.getElementById('file'),n=document.getElementById('name');
+d.onclick=e=>{if(e.target!==f)f.click()};
+['dragenter','dragover'].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.add('dragging')}));
+['dragleave','drop'].forEach(x=>d.addEventListener(x,e=>{e.preventDefault();d.classList.remove('dragging')}));
+d.addEventListener('drop',e=>{if(e.dataTransfer.files.length){f.files=e.dataTransfer.files;n.textContent=e.dataTransfer.files[0].name}});
+f.addEventListener('change',()=>n.textContent=f.files[0]?.name||'');
+</script>
+</div>
+{% endblock %}

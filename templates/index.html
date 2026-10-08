@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block page_heading %}Command Center{% endblock %}
+{% block content %}
+<section class="dashboard-hero">
+  <div><span class="eyebrow">LIVE ACADEMIC COMMAND CENTER</span><h2>See the whole institution at a glance.</h2><p>Students, marks, attendance and academic trends in one focused workspace.</p></div>
+  {% if current_user.role!='student' %}<a class="btn primary hero-btn" href="{{url_for('add_student')}}">＋ Add Student</a>{% endif %}
+</section>
+<div class="stat-grid">
+ <div class="stat-card glow-violet"><span>Students</span><strong>{{stats.students}}</strong><small>Registered in your access scope</small><i>👥</i></div>
+ <div class="stat-card glow-cyan"><span>Subjects</span><strong>{{stats.subjects}}</strong><small>Available subject catalog</small><i>📚</i></div>
+ <div class="stat-card glow-pink"><span>Marks Records</span><strong>{{stats.marks}}</strong><small>Saved assessment entries</small><i>✍️</i></div>
+ <div class="stat-card glow-green"><span>Average</span><strong>{{stats.average}}%</strong><small>Across recorded marks</small><i>📈</i></div>
+</div>
+<div class="dashboard-grid">
+ <section class="card chart-card dashboard-chart-card"><div class="section-head"><div><span class="eyebrow">ACADEMIC PULSE</span><h3>Subject performance</h3><p>Average percentage by subject.</p></div><span class="live-pill">● LIVE</span></div><div class="chart-box dashboard-chart"><canvas id="dashSubjectChart"></canvas></div></section>
+ <section class="card radar-card"><div class="section-head"><div><span class="eyebrow">HEALTH CHECK</span><h3>Attendance</h3><p>Current attendance across your access scope.</p></div></div><div class="attendance-ring"><div><strong>{{stats.attendance}}%</strong><span>Attendance</span></div></div><div class="ring-caption"><span><i class="dot cyan"></i> Present</span><span><i class="dot dim"></i> Remaining</span></div></section>
+</div>
+<div class="grid-2">
+ <section class="card command-card"><div class="section-head"><div><span class="eyebrow">SHORTCUTS</span><h3>Quick actions</h3><p>Jump directly to the work you do most.</p></div></div><div class="quick-grid modern-quick">
+ {% if current_user.role!='student' %}<a href="{{url_for('add_student')}}" class="quick"><b>＋</b><span><strong>Add Student</strong><small>Create a new student record</small></span></a><a href="{{url_for('marks')}}" class="quick"><b>✎</b><span><strong>Enter Marks</strong><small>Fast horizontal marks entry</small></span></a><a href="{{url_for('import_marks')}}" class="quick"><b>↥</b><span><strong>Import Marks</strong><small>Upload flexible files</small></span></a>{% endif %}<a href="{{url_for('analysis')}}" class="quick"><b>◈</b><span><strong>Analyze Performance</strong><small>Find trends and improvement areas</small></span></a><a href="{{url_for('attendance_dashboard')}}" class="quick"><b>◷</b><span><strong>Attendance</strong><small>View class and student trends</small></span></a></div></section>
+ <section class="card status-card"><div class="section-head"><div><span class="eyebrow">SYSTEM</span><h3>System status</h3><p>Current data environment.</p></div><span class="status-orb">✓</span></div><div class="status-row"><span>Exam Types</span><b>{{stats.exams}}</b></div><div class="status-row"><span>Database</span><b class="ok">Connected</b></div><div class="status-row"><span>Access Level</span><b>{{current_user.role|title}}</b></div></section>
+</div>
+<section class="card activity-card"><div class="section-head"><div><span class="eyebrow">RECENT ACTIVITY</span><h3>Latest marks activity</h3><p>Most recent saved academic records.</p></div><a class="btn small" href="{{url_for('results')}}">Open Results →</a></div>
+{% if recent %}<div class="table-wrap"><table><thead><tr><th>Student</th><th>Subject</th><th>Assessment</th><th>Marks</th><th>%</th></tr></thead><tbody>{% for r in recent %}<tr><td><strong>{{r.student_name}}</strong><small>{{r.roll_no}}</small></td><td>{{r.subject_name}}</td><td>{{r.exam_name}} · {{r.semester_name}}</td><td>{{r.obtained_marks}} / {{r.maximum_marks}}</td><td><span class="badge">{{((r.obtained_marks/r.maximum_marks)*100)|round(2)}}%</span></td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty">No marks have been recorded yet.</div>{% endif %}</section>
+<script>
+AcademicCharts.make('dashSubjectChart','bar',{{subject_avgs|map(attribute='label')|list|tojson}},{{subject_avgs|map(attribute='value')|list|tojson}},{label:'Average %',max:100});
+const ring=document.querySelector('.attendance-ring'); if(ring){ring.style.setProperty('--att', '{{stats.attendance}}%');}
+</script>
+{% endblock %}

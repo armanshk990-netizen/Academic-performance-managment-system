@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block page_heading %}Edit Subject{% endblock %}
+{% block content %}
+<section class="form-card narrow-card">
+  <div class="section-head"><div>
+    <h3>Edit Subject</h3>
+    <p>The new name will be shown everywhere this subject is used.</p>
+  </div></div>
+  <form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>Subject Name</label>
+    <input name="subject_name" value="{{ subject.subject_name }}" maxlength="100" required autofocus>
+    <div class="form-actions">
+      <a class="btn" href="{{ url_for('subjects') }}">Cancel</a>
+      <button class="btn primary" type="submit">Save Changes</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

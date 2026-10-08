@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_heading %}User Management{% endblock %}
+{% block content %}
+<section class="form-card glass-card">
+  <div class="section-head"><div><h3>👥 Create User</h3><p>Create secure Administrator, Teacher or Student accounts without exposing passwords.</p></div></div>
+  <form method="post">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="form-grid three">
+      <div><label>Full Name</label><input name="full_name" required></div>
+      <div><label>Username</label><input name="username" required></div>
+      <div><label>Temporary Password</label><input type="password" name="password" minlength="8" required></div>
+      <div><label>Role</label><select name="role" id="role"><option value="student">🎓 Student</option><option value="teacher">👨‍🏫 Teacher</option><option value="staff">🧑‍💼 Staff</option><option value="admin">🛡️ Administrator</option></select></div>
+      <div><label>Student Account</label><select name="student_id"><option value="">Not linked</option>{% for s in students %}<option value="{{s.student_id}}">{{s.roll_no}} · {{s.student_name}} · {{s.student_class}}</option>{% endfor %}</select></div>
+      <div><label>Teacher Classes</label><select name="classes" multiple size="4">{% for c in classes %}<option value="{{c.student_class}}">{{c.student_class}}</option>{% endfor %}</select><small>Select one or more classes.</small></div>
+    </div>
+    <button class="btn primary">➕ Create User</button>
+  </form>
+</section>
+
+{% if reset_requests %}
+<section class="card glass-card attention-card">
+  <div class="section-head"><div><h3>🔔 Password Reset Requests</h3><p>Teachers and students can request a reset. Review and set a new password here.</p></div><span class="badge">{{reset_requests|length}} pending</span></div>
+  {% for r in reset_requests %}
+  <div class="reset-request">
+    <div><b>{{r.full_name}}</b><span>{{r.role|title}} · {{r.username}}</span><small>{{r.requested_at}}</small></div>
+    <div class="reset-inline">
+      <form method="post" action="{{url_for('complete_reset_request',request_id=r.request_id)}}" class="inline">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="password" name="new_password" minlength="8" placeholder="New password" required>
+        <button class="btn small primary">Reset Password</button>
+      </form>
+      <form method="post" action="{{url_for('delete_reset_request',request_id=r.request_id)}}" class="inline" onsubmit="return confirm('Delete this reset request? The user will be allowed to submit a new request.');">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn small danger-btn" type="submit">🗑 Delete Request</button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="card glass-card">
+  <div class="section-head"><div><h3>👤 Accounts</h3><p>Access is restricted by role and class assignment.</p></div></div>
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Username</th><th>Role</th><th>Access / Link</th><th>Status</th><th>Action</th></tr></thead><tbody>
+  {% for u in users %}<tr><td><b>{{u.full_name}}</b></td><td>{{u.username}}</td><td>{{u.role|title}}</td><td>{% if u.role=='student' %}{{u.roll_no}} · {{u.student_class}}{% elif u.role=='teacher' %}{{u.assigned_classes|join(', ')}}{% else %}Full access{% endif %}</td><td>{{'Active' if u.is_active else 'Inactive'}}</td><td>{% if u.user_id!=current_user.user_id %}<form class="inline" method="post" action="{{url_for('toggle_user',user_id=u.user_id)}}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small">{{'Deactivate' if u.is_active else 'Activate'}}</button></form> <form class="inline" method="post" action="{{url_for('delete_user',user_id=u.user_id)}}">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small danger-btn">Delete</button></form>{% else %}Current{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+</section>
+{% endblock %}

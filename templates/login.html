@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Login · {{institution.name}}{% endblock %}
+{% block content %}
+<div class="login-page neo-login">
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div><div class="grid-glow"></div>
+  <div class="login-shell">
+    <div class="login-brand"><div class="brand-icon large">🎓</div><p class="eyebrow">SMART ACADEMIC PLATFORM</p><h1>Sign in to your workspace</h1><p>Choose your account type to continue.</p></div>
+    {% if not selected_role %}
+    <div class="role-selection">
+      <a class="role-tile admin" href="{{url_for('login',role='admin')}}"><span>🛡️</span><div><b>Administrator</b><small>Manage the complete institution system</small></div><i>→</i></a>
+      <a class="role-tile teacher" href="{{url_for('login',role='teacher')}}"><span>👨‍🏫</span><div><b>Teacher</b><small>Manage your assigned classes and academic records</small></div><i>→</i></a>
+      <a class="role-tile staff" href="{{url_for('login',role='staff')}}"><span>🧑‍💼</span><div><b>Staff</b><small>View institutional academic records and reports</small></div><i>→</i></a>
+      <a class="role-tile student" href="{{url_for('login',role='student')}}"><span>🎓</span><div><b>Student</b><small>View your own results and attendance</small></div><i>→</i></a>
+    </div>
+    {% else %}
+    <div class="login-panel glass-card">
+      <a class="back-role" href="{{url_for('login')}}">← Change login type</a>
+      <div class="role-heading">{% if selected_role=='admin' %}🛡️ Administrator{% elif selected_role=='teacher' %}👨‍🏫 Teacher{% elif selected_role=='staff' %}🧑‍💼 Staff{% else %}🎓 Student{% endif %}<small>Secure account login</small></div>
+      <form method="post" autocomplete="on">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="login_role" value="{{selected_role}}">
+        <label>Username</label><input name="username" autocomplete="username" placeholder="Enter your username" required autofocus>
+        <label>Password</label><input type="password" name="password" autocomplete="current-password" placeholder="Enter your password" required>
+        <button class="btn primary full-btn" type="submit">Sign In <span>→</span></button>
+      </form>
+      <a class="forgot-link" href="{{url_for('forgot_password',role=selected_role)}}">🔑 Forgot password?</a>
+      <div class="security-note">🔒 Your password is never displayed. Repeated failed attempts are temporarily rate-limited.</div>
+    </div>
+    {% endif %}
+    <div class="login-footer">🔐 Protected academic records · Authorized users only</div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block page_heading %}Settings{% endblock %}
+{% block content %}
+<section class="settings-hero glass-card">
+  <div><span class="eyebrow">⚙️ ADMIN CONTROL CENTER</span><h2>Academic Settings</h2><p>Manage institution rules, semesters and assessment types without leaving the page.</p></div>
+</section>
+<section class="form-card settings-card">
+  <div class="section-head"><div><h3>🏫 Institution & Academic Rules</h3><p>These rules apply throughout the system.</p></div></div>
+  <form method="post" class="form-grid four">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div><label>Institution Type</label><select name="institution_type"><option value="school" {% if config.type=='school' %}selected{% endif %}>School</option><option value="college" {% if config.type=='college' %}selected{% endif %}>College</option></select></div>
+    <div><label>Institution Name</label><input name="institution_name" value="{{config.name}}" required></div>
+    <div><label>Detention Attendance %</label><input type="number" step="0.1" min="0" max="100" name="detention_threshold" value="{{config.detention_threshold}}"><small>Applied to every student.</small></div>
+    <div class="setting-toggle"><label><input type="checkbox" name="use_enrollment" value="1" {% if config.use_enrollment %}checked{% endif %}> Show Enrollment Number</label><small>Enrollment is optional; blank values use Roll No.</small></div>
+    <div class="form-actions"><button class="btn primary">💾 Save Settings</button></div>
+  </form>
+</section>
+<div class="grid-2 settings-grid">
+<section class="form-card settings-card">
+  <div class="section-head"><div><h3>📚 Semesters / Terms</h3><p>{{semesters|length}} configured</p></div></div>
+  <form method="post" action="{{url_for('assessment_setting')}}" class="settings-add-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="semester"><input name="name" placeholder="e.g. Semester 1 / Term 1" required><button class="btn primary">➕ Add</button></form>
+  <div class="settings-list">{% for x in semesters %}<div class="setting-row"><span>🎓 {{x.semester_name}}</span><form method="post" action="{{url_for('delete_setting',kind='semester',item_id=x.semester_id)}}" onsubmit="return confirm('Delete {{x.semester_name}} and its related marks?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small danger-btn">🗑️ Delete</button></form></div>{% else %}<div class="empty-mini">No semesters/terms configured.</div>{% endfor %}</div>
+</section>
+<section class="form-card settings-card">
+  <div class="section-head"><div><h3>📝 Test / Assessment Types</h3><p>{{exams|length}} configured · You can delete any type.</p></div>{% if exams %}<form method="post" action="{{url_for('delete_all_exams')}}" onsubmit="return confirm('Delete ALL test types and all marks linked to them? This cannot be undone.')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small danger-btn">🗑️ Delete All Tests</button></form>{% endif %}</div>
+  <form method="post" action="{{url_for('assessment_setting')}}" class="settings-add-form">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="kind" value="exam"><input name="name" placeholder="e.g. Unit Test 1 / Mid Term / Final" required><button class="btn primary">➕ Add Test</button></form>
+  <div class="settings-list">{% for x in exams %}<div class="setting-row"><span>📌 {{x.exam_name}}</span><form method="post" action="{{url_for('delete_setting',kind='exam',item_id=x.exam_id)}}" onsubmit="return confirm('Delete {{x.exam_name}} and its related marks?')">
+<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn small danger-btn">🗑️ Delete</button></form></div>{% else %}<div class="empty-mini">No test types configured.</div>{% endfor %}</div>
+</section>
+</div>
+{% endblock %}
