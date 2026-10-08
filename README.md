@@ -1,5 +1,9 @@
 # Academic Marks Management System — V32.4
 
+# Demo admin information
+name = admin
+password = admin123
+
 ## V32.4 updates
 - Individual student analysis now shows an automatic result-based performance observation.
 - Teachers/admins can optionally save a custom remark against a student from the analysis page.
